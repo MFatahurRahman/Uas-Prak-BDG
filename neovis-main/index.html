@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Visualisasi Industri Musik - Neo4j</title>
+
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdn2-jsdelivr.pages.dev/main/fontawesome_pro@6.6.0/css/all.css"/>
+
+  <!-- Library Neovis.js -->
+  <script src="https://unpkg.com/neovis.js@2.1.0/dist/neovis.js"></script>
+
+  <!-- Import file CSS eksternal -->
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="wrapper">
+    <h2 class="title">Visualisasi Industri Musik</h2>
+    <div id="viz"></div>
+    <div class="input-group">
+      <input
+        id="cypher"
+        type="text"
+        placeholder="Masukkan query Cypher..."
+        autocomplete="off"
+      />
+      <button id="reload" aria-label="Tampilkan query">
+        <i class="fa-solid fa-paper-plane-top"></i>
+      </button>
+    </div>
+  </div>
+
+  <script>
+    let viz;
+
+    const config = {
+      containerId: "viz",
+      neo4j: {
+        serverUrl: "bolt://localhost:7687",
+        serverUser: "neo4j",
+        serverPassword: "rahman21"
+      },
+      labels: {
+        Artis: {
+          label: "nama_artis",
+          group: "Artis",
+          [NeoVis.NEOVIS_ADVANCED_CONFIG]: {
+            static: { color: "#2ecc71" }
+          }
+        },
+        Lagu: {
+          label: "judul_lagu",
+          group: "Lagu",
+          [NeoVis.NEOVIS_ADVANCED_CONFIG]: {
+            static: { color: "#e74c3c" }
+          }
+        },
+        Album: {
+          label: "nama_album",
+          group: "Album",
+          [NeoVis.NEOVIS_ADVANCED_CONFIG]: {
+            static: { color: "#f1c40f" }
+          }
+        }
+      },
+      relationships: {
+        MENYANYIKAN: {
+          label: "MENYANYIKAN",
+          [NeoVis.NEOVIS_ADVANCED_CONFIG]: {
+            static: { color: "#3498db", arrows: "to" }
+          }
+        },
+        TERDAPAT_PADA: {
+          label: "TERDAPAT_PADA",
+          [NeoVis.NEOVIS_ADVANCED_CONFIG]: {
+            static: { color: "#9b59b6", arrows: "to" }
+          }
+        },
+        MERILIS: {
+          label: "MERILIS",
+          [NeoVis.NEOVIS_ADVANCED_CONFIG]: {
+            static: { color: "#34495e", arrows: "to" }
+          }
+        }
+      },
+      initialCypher: `
+        MATCH (a:Artis)-[r1:MENYANYIKAN]->(l:Lagu)
+        OPTIONAL MATCH (l)-[r2:TERDAPAT_PADA]->(al:Album)
+        OPTIONAL MATCH (a)-[r3:MERILIS]->(al)
+        RETURN a, r1, l, r2, al, r3
+      `,
+      visConfig: {
+        nodes: {
+          shape: 'dot',
+          size: 20,
+          scaling: { min: 12, max: 30 },
+          font: {
+            size: 14,
+            face: 'arial',
+            color: '#000000'
+          }
+        },
+        edges: {
+          arrows: {
+            to: { enabled: true, scaleFactor: 1.2 }
+          },
+          smooth: { enabled: true, type: 'dynamic' },
+          font: { size: 10, align: "middle" },
+          color: {
+            color: "#7f8c8d",
+            highlight: "#e67e22",
+            hover: "#e67e22"
+          }
+        },
+        physics: {
+          enabled: true,
+          stabilization: { iterations: 200 },
+          barnesHut: {
+            gravitationalConstant: -8000,
+            centralGravity: 0.3,
+            springLength: 200,
+            springConstant: 0.04,
+            damping: 0.09,
+            avoidOverlap: 1
+          }
+        }
+      }
+    };
+
+    function renderCypher(query) {
+      viz.renderWithCypher(query);
+    }
+
+    window.addEventListener("DOMContentLoaded", () => {
+      const input = document.getElementById("cypher");
+      const btn = document.getElementById("reload");
+
+      input.value = config.initialCypher;
+      viz = new NeoVis.default(config);
+      viz.render();
+
+      btn.addEventListener("click", () => {
+        const q = input.value.trim();
+        if (q) renderCypher(q);
+      });
+
+      input.addEventListener("keydown", e => {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          btn.click();
+        }
+      });
+    });
+  </script>
+</body>
+</html>
